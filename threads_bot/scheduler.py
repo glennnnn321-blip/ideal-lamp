@@ -9,7 +9,7 @@ import pytz
 from .config import TIMEZONE
 from .database import get_session, Post, ScheduledJob
 from .threads_client import ThreadsClient
-from .generator import generate_post
+from .generator import generate_post, generate_post_with_analysis
 
 _scheduler: BackgroundScheduler | None = None
 
@@ -43,9 +43,18 @@ def _publish_post(post_id: int) -> None:
         session.commit()
 
 
-def _generate_and_publish(topic: str, tone: str = "informative") -> None:
+def _generate_and_publish(topic: str, tone: str = "informative", use_analysis: bool = False) -> None:
     """AI で投稿を生成して即座に公開する。"""
-    content = generate_post(topic, tone)
+    if use_analysis:
+        try:
+            from .analytics import get_post_performance
+            perf = get_post_performance(limit=20)
+            content = generate_post_with_analysis(topic, perf["high"], perf["low"], tone)
+        except Exception:
+            content = generate_post(topic, tone)
+    else:
+        content = generate_post(topic, tone)
+
     with get_session() as session:
         post = Post(content=content, topic=topic, status="pending")
         session.add(post)
@@ -90,7 +99,7 @@ def schedule_one_time(content: str, run_at: datetime, topic: str = "") -> int:
     return post_id
 
 
-def schedule_recurring(topic: str, cron_expr: str, tone: str = "informative") -> str:
+def schedule_recurring(topic: str, cron_expr: str, tone: str = "informative", use_analysis: bool = False) -> str:
     """cron 式で定期的に AI 投稿を生成・公開する。
 
     Args:
@@ -120,7 +129,7 @@ def schedule_recurring(topic: str, cron_expr: str, tone: str = "informative") ->
     scheduler.add_job(
         _generate_and_publish,
         trigger=trigger,
-        kwargs={"topic": topic, "tone": tone},
+        kwargs={"topic": topic, "tone": tone, "use_analysis": use_analysis},
         id=job_id,
         replace_existing=True,
     )

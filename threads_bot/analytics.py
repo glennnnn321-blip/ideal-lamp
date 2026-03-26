@@ -1,4 +1,5 @@
 """Threads インサイト取得・レポート生成"""
+from __future__ import annotations
 from datetime import datetime, timedelta
 from rich.console import Console
 from rich.table import Table
@@ -9,6 +10,34 @@ from .threads_client import ThreadsClient
 from .database import get_session, Post
 
 console = Console()
+
+
+def get_post_performance(limit: int = 20) -> dict:
+    """投稿のパフォーマンスを取得し、高・低パフォーマンスに分類して返す。"""
+    client = ThreadsClient()
+    posts = client.get_posts(limit=limit)
+
+    scored = []
+    for post in posts:
+        likes = post.get("like_count", 0) or 0
+        replies = post.get("replies_count", 0) or 0
+        score = likes * 3 + replies * 2  # いいね重視のスコア
+        scored.append({
+            "text": post.get("text", ""),
+            "likes": likes,
+            "replies": replies,
+            "score": score,
+            "timestamp": post.get("timestamp", ""),
+        })
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    n = max(1, len(scored) // 3)
+
+    return {
+        "high": scored[:n],
+        "low": scored[-n:] if len(scored) >= n * 2 else [],
+        "all": scored,
+    }
 
 
 def print_user_report(days: int = 7) -> None:

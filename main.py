@@ -94,13 +94,16 @@ def schedule_cmd(text, topic, at):
 @click.option("--cron", "-c", required=True, help="cron 式 (例: '0 9 * * *' = 毎日9時)")
 @click.option("--tone", default="informative", show_default=True,
               type=click.Choice(["informative", "casual", "inspiring", "humorous"]))
-def add_recurring_cmd(topic, cron, tone):
+@click.option("--analyze", is_flag=True, default=False, help="過去の投稿データを分析して投稿を最適化する")
+def add_recurring_cmd(topic, cron, tone, analyze):
     """定期的な AI 投稿ジョブを追加する。"""
     from threads_bot.scheduler import schedule_recurring
 
-    job_id = schedule_recurring(topic, cron, tone)
+    job_id = schedule_recurring(topic, cron, tone, use_analysis=analyze)
     console.print(f"[green]✓ 定期ジョブを追加しました！ ジョブ ID: {job_id}[/green]")
     console.print(f"  トピック: {topic}、スケジュール: {cron}")
+    if analyze:
+        console.print("  [cyan]分析モード: 過去の投稿パフォーマンスを元に最適化します[/cyan]")
 
 
 @cli.command("remove-recurring")

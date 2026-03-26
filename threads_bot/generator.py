@@ -63,6 +63,53 @@ def generate_post(topic: str, tone: str = "informative", extra_instructions: str
     return message.content[0].text.strip()
 
 
+def generate_post_with_analysis(topic: str, high_posts: list, low_posts: list, tone: str = "informative") -> str:
+    """過去のパフォーマンスデータを元に投稿を生成する。
+
+    Args:
+        topic: 投稿のテーマ
+        high_posts: 高パフォーマンス投稿のリスト
+        low_posts: 低パフォーマンス投稿のリスト
+        tone: 文体
+
+    Returns:
+        生成された投稿文
+    """
+    tone_map = {
+        "informative": "役に立つ情報を共有する",
+        "casual": "友達に話しかけるようなカジュアルな",
+        "inspiring": "読者を鼓舞・インスパイアする",
+        "humorous": "ユーモアを交えた",
+    }
+    tone_desc = tone_map.get(tone, tone)
+
+    high_examples = "\n".join(
+        f"- いいね{p['likes']} | {p['text'][:80]}" for p in high_posts[:3]
+    ) if high_posts else "（データなし）"
+
+    low_examples = "\n".join(
+        f"- いいね{p['likes']} | {p['text'][:80]}" for p in low_posts[:3]
+    ) if low_posts else "（データなし）"
+
+    user_message = (
+        f"トピック: {topic}\n"
+        f"文体: {tone_desc}\n\n"
+        f"【反応が良かった投稿例（参考にすべきパターン）】\n{high_examples}\n\n"
+        f"【反応が少なかった投稿例（避けるべきパターン）】\n{low_examples}\n\n"
+        "上記のデータを分析し、反応が良かった投稿の特徴を活かして、"
+        "新しいThreads投稿文を1つ作成してください。"
+    )
+
+    client = _get_client()
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    return message.content[0].text.strip()
+
+
 def generate_post_batch(topic: str, count: int = 5, tone: str = "informative") -> list[str]:
     """複数の投稿案を一度に生成する。"""
     client = _get_client()
