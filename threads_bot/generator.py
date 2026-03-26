@@ -1,4 +1,5 @@
 """Claude API を使った AI 投稿生成"""
+from __future__ import annotations
 import anthropic
 from .config import ANTHROPIC_API_KEY
 

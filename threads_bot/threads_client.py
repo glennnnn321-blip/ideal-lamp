@@ -1,4 +1,5 @@
 """Threads Graph API クライアント"""
+from __future__ import annotations
 import time
 import requests
 from .config import THREADS_API_BASE, THREADS_ACCESS_TOKEN, THREADS_USER_ID
